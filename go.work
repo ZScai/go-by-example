@@ -1,0 +1,7 @@
+go 1.20
+
+use (
+	./example/http_1
+	./example/http_2
+	./example/http_3
+)
