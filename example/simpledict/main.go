@@ -90,8 +90,9 @@ func query(word string) {
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, `usage: simpleDict WORD\nexample: simpleDict hello`)
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, `usage: simpleDict WORD
+example: simpleDict hello`)
+		os.Exit(0)
 	}
 	word := os.Args[1]
 	query(word)
