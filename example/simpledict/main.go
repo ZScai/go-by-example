@@ -34,15 +34,24 @@ type DictResponse struct {
 		Source       string        `json:"source"`
 	} `json:"dictionary"`
 }
+type ApiResponse struct {
+	Confidence float64 `json:"confidence"`
+	Target     string  `json:"target"`
+	Rc         int     `json:"rc"`
+}
 
 func query(word string) {
+	var url string
+	const token = "20ux3f6cslbpldtez5jo"
 	client := &http.Client{}
 	isLetter := regexp.MustCompile(`^[a-zA-Z]+$`).MatchString(word)
 	isChinese := regexp.MustCompile(`^[\p{Han}]+$`).MatchString(word)
 	var tranType string
 	if isLetter {
+		url = "http://api.interpreter.caiyunai.com/v1/dict"
 		tranType = "en2zh"
 	} else if isChinese {
+		url = "http://api.interpreter.caiyunai.com/v1/translator"
 		tranType = "zh2en"
 	} else {
 		log.Fatal(word, "is unkown string")
@@ -54,14 +63,12 @@ func query(word string) {
 		log.Fatal(err)
 	}
 	data := bytes.NewReader(buf)
-	req, err := http.NewRequest("POST", "https://api.interpreter.caiyunai.com/v1/dict", data)
+	req, err := http.NewRequest("POST", url, data)
 	if err != nil {
 		log.Fatal(err)
 	}
 	req.Header.Set("Content-Type", "application/json;charset=UTF-8")
-	// req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.203")
-	// req.Header.Set("Origin", "https://fanyi.caiyunapp.com")
-	req.Header.Set("X-Authorization", "token:qgemv4jr1y38jyq6vhvi")
+	req.Header.Set("X-Authorization", "token:"+token)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
@@ -74,27 +81,33 @@ func query(word string) {
 	if resp.StatusCode != 200 {
 		log.Fatal("bad StatusCode: ", resp.StatusCode, "body: ", string(bodyText))
 	}
-	var result DictResponse
-	if err := json.Unmarshal(bodyText, &result); err != nil {
-		log.Fatal(err)
-	}
+
 	if isLetter {
+		var result DictResponse
+		if err := json.Unmarshal(bodyText, &result); err != nil {
+			log.Fatal(err)
+		}
 		fmt.Println(word, "UK:", result.Dictionary.Prons.En, "US:", result.Dictionary.Prons.EnUs)
+		for _, item := range result.Dictionary.Explanations {
+			fmt.Println(item)
+		}
 	} else if isChinese {
-		fmt.Println(word)
+		var result ApiResponse
+		if err := json.Unmarshal(bodyText, &result); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(word, result.Target)
 	}
-	for _, item := range result.Dictionary.Explanations {
-		fmt.Println(item)
-	}
+
 }
 
 func main() {
 	if len(os.Args) != 2 {
 		fmt.Fprintln(os.Stderr, `usage: simpleDict WORD
-example: simpleDict hello`)
+example: simpleDict hello
+example: simpleDict 你好`)
 		os.Exit(0)
 	}
 	word := os.Args[1]
 	query(word)
 }
-
